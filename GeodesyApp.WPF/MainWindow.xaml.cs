@@ -9,7 +9,10 @@ namespace GeodesyApp.WPF
     public partial class MainWindow: Window
     {
         // Строка подключения к твоей базе данных
-        private string connectionString = "Server=.\\SQLEXPRESS;Database=GeodesyRegistry;Trusted_Connection=True;TrustServerCertificate=true;";
+        // Путь к файлу базы данных SQLite (рядом с exe-файлом)
+        private string dbFilePath = System.IO.Path.Combine(
+            AppDomain.CurrentDomain.BaseDirectory,
+            "GeodesyDB.db");
 
         private DatabaseHelper dbHelper;
         private ExcelExporter exporter;
@@ -18,7 +21,7 @@ namespace GeodesyApp.WPF
         {
             InitializeComponent();
 
-            dbHelper = new DatabaseHelper(connectionString);
+            dbHelper = new DatabaseHelper(dbFilePath);
             exporter = new ExcelExporter();
         }
 

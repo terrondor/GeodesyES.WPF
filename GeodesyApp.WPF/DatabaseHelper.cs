@@ -1,8 +1,6 @@
-﻿using Microsoft.Data.SqlClient;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Windows;
+using Microsoft.Data.Sqlite;
 
 namespace GeodesyApp
 {
@@ -10,77 +8,100 @@ namespace GeodesyApp
     {
         private string _connectionString;
 
-        public DatabaseHelper(string connectionString)
+        // Конструктор принимает путь к файлу базы данных
+        public DatabaseHelper(string dbFilePath)
         {
-            _connectionString = connectionString;
+            _connectionString = $"Data Source={dbFilePath}";
+
+            // Создаём базу данных и таблицу, если их нет
+            InitializeDatabase();
         }
 
-        public List<Scheme> GetAllSchemes()
+        // Создаёт файл базы и таблицу Register при первом запуске
+        private void InitializeDatabase()
         {
-            List<Scheme> schemes = new List<Scheme>();
-            using(SqlConnection connection = new SqlConnection(_connectionString))
+            using(var connection = new SqliteConnection(_connectionString))
             {
                 connection.Open();
-                string query = "SELECT * FROM Register";
-                SqlCommand cmd = new SqlCommand(query, connection);
-                SqlDataReader reader = cmd.ExecuteReader();
 
-                while(reader.Read())
+                string createTableQuery = @"
+                    CREATE TABLE IF NOT EXISTS Register (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        Название TEXT NOT NULL,
+                        Оси TEXT NOT NULL,
+                        Отметка TEXT NOT NULL,
+                        Объем REAL,
+                        Статус TEXT NOT NULL DEFAULT 'Новая'
+                    )";
+
+                using(var command = new SqliteCommand(createTableQuery, connection))
                 {
-                    Scheme scheme = new Scheme();
-                    scheme.Id = (int) reader["id"];
-                    scheme.Name = reader["Название"].ToString()!;
-                    scheme.Axes = reader["Оси"].ToString()!;
-                    scheme.Mark = reader["Отметка"].ToString()!;
-
-                    // Обрабатываем NULL для объёма
-                    if(reader["Объем"] == DBNull.Value)
-                    {
-                        scheme.Volume = null;
-                    }
-                    else
-                    {
-                        scheme.Volume = (decimal) reader["Объем"];
-                    }
-
-                    scheme.Status = reader["Статус"].ToString()!;
-
-                    schemes.Add(scheme);
+                    command.ExecuteNonQuery();
                 }
             }
+        }
+
+        // Получить все схемы
+        public List<Scheme> GetAllSchemes()
+        {
+            var schemes = new List<Scheme>();
+
+            using(var connection = new SqliteConnection(_connectionString))
+            {
+                connection.Open();
+
+                string query = "SELECT id, Название, Оси, Отметка, Объем, Статус FROM Register ORDER BY id";
+
+                using(var command = new SqliteCommand(query, connection))
+                using(var reader = command.ExecuteReader())
+                {
+                    while(reader.Read())
+                    {
+                        var scheme = new Scheme
+                        {
+                            Id = reader.GetInt32(0),
+                            Name = reader.GetString(1),
+                            Axes = reader.GetString(2),
+                            Mark = reader.GetString(3),
+                            Volume = reader.IsDBNull(4) ? null : reader.GetDecimal(4),
+                            Status = reader.GetString(5)
+                        };
+                        schemes.Add(scheme);
+                    }
+                }
+            }
+
             return schemes;
         }
 
+        // Добавить новую схему
         public bool AddScheme(Scheme scheme)
         {
-            string query = @"INSERT INTO Register (Название, Оси, Отметка, Объем, Статус)
-                     VALUES (@name, @axes, @mark, @volume, @status)";
+            string query = @"INSERT INTO Register (Название, Оси, Отметка, Объем, Статус) 
+                           VALUES (@name, @axes, @mark, @volume, @status)";
 
             try
             {
-                using(SqlConnection connection = new SqlConnection(_connectionString))
+                using(var connection = new SqliteConnection(_connectionString))
                 {
                     connection.Open();
-                    SqlCommand cmd = new SqlCommand(query, connection);
 
-                    cmd.Parameters.AddWithValue("@name", scheme.Name);
-                    cmd.Parameters.AddWithValue("@axes", scheme.Axes);
-                    cmd.Parameters.AddWithValue("@mark", scheme.Mark);
-
-                    // Если объём NULL, передаём DBNull.Value
-                    if(scheme.Volume.HasValue)
+                    using(var command = new SqliteCommand(query, connection))
                     {
-                        cmd.Parameters.AddWithValue("@volume", scheme.Volume.Value);
-                    }
-                    else
-                    {
-                        cmd.Parameters.AddWithValue("@volume", DBNull.Value);
-                    }
+                        command.Parameters.AddWithValue("@name", scheme.Name);
+                        command.Parameters.AddWithValue("@axes", scheme.Axes);
+                        command.Parameters.AddWithValue("@mark", scheme.Mark);
 
-                    cmd.Parameters.AddWithValue("@status", scheme.Status);
+                        if(scheme.Volume.HasValue)
+                            command.Parameters.AddWithValue("@volume", scheme.Volume.Value);
+                        else
+                            command.Parameters.AddWithValue("@volume", DBNull.Value);
 
-                    int result = cmd.ExecuteNonQuery();
-                    return result > 0;
+                        command.Parameters.AddWithValue("@status", scheme.Status);
+
+                        int result = command.ExecuteNonQuery();
+                        return result > 0;
+                    }
                 }
             }
             catch(Exception ex)
@@ -90,23 +111,40 @@ namespace GeodesyApp
             }
         }
 
-        public bool UpdateStatus(int id, string newStatus)
+        // Обновить все поля схемы
+        public bool UpdateScheme(Scheme scheme)
         {
-            string query = "UPDATE Register SET Статус = @status WHERE id = @id";
+            string query = @"UPDATE Register 
+                           SET Название = @name, 
+                               Оси = @axes, 
+                               Отметка = @mark, 
+                               Объем = @volume, 
+                               Статус = @status 
+                           WHERE id = @id";
+
             try
             {
-                using(SqlConnection connection = new SqlConnection(_connectionString))
+                using(var connection = new SqliteConnection(_connectionString))
                 {
                     connection.Open();
-                    SqlCommand cmd = new SqlCommand(query, connection);
 
-                    // Добавляем параметры
-                    cmd.Parameters.AddWithValue("@status", newStatus);
-                    cmd.Parameters.AddWithValue("@id", id);
+                    using(var command = new SqliteCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@id", scheme.Id);
+                        command.Parameters.AddWithValue("@name", scheme.Name);
+                        command.Parameters.AddWithValue("@axes", scheme.Axes);
+                        command.Parameters.AddWithValue("@mark", scheme.Mark);
 
-                    int result = cmd.ExecuteNonQuery();
-                    return result > 0;
+                        if(scheme.Volume.HasValue)
+                            command.Parameters.AddWithValue("@volume", scheme.Volume.Value);
+                        else
+                            command.Parameters.AddWithValue("@volume", DBNull.Value);
 
+                        command.Parameters.AddWithValue("@status", scheme.Status);
+
+                        int result = command.ExecuteNonQuery();
+                        return result > 0;
+                    }
                 }
             }
             catch(Exception ex)
@@ -115,68 +153,28 @@ namespace GeodesyApp
                 return false;
             }
         }
-        // Метод для обновления ВСЕХ полей схемы
-        public bool UpdateScheme(Scheme scheme)
-        {
-            string query = @"UPDATE Register 
-                     SET Название = @name, 
-                         Оси = @axes, 
-                         Отметка = @mark, 
-                         Объем = @volume,
-                         Статус = @status
-                     WHERE id = @id";
 
-            try
-            {
-                using(SqlConnection connection = new SqlConnection(_connectionString))
-                {
-                    connection.Open();
-                    SqlCommand cmd = new SqlCommand(query, connection);
-
-                    cmd.Parameters.AddWithValue("@id", scheme.Id);
-                    cmd.Parameters.AddWithValue("@name", scheme.Name);
-                    cmd.Parameters.AddWithValue("@axes", scheme.Axes);
-                    cmd.Parameters.AddWithValue("@mark", scheme.Mark);
-
-                    // Если объём NULL, передаём DBNull.Value
-                    if(scheme.Volume.HasValue)
-                    {
-                        cmd.Parameters.AddWithValue("@volume", scheme.Volume.Value);
-                    }
-                    else
-                    {
-                        cmd.Parameters.AddWithValue("@volume", DBNull.Value);
-                    }
-
-                    cmd.Parameters.AddWithValue("@status", scheme.Status);
-
-                    int result = cmd.ExecuteNonQuery();
-                    return result > 0;
-                }
-            }
-            catch(Exception ex)
-            {
-                System.Windows.MessageBox.Show($"Ошибка при обновлении: {ex.Message}", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-                return false;
-            }
-        }
+        // Удалить схему по ID
         public bool DeleteScheme(int id)
         {
             string query = "DELETE FROM Register WHERE id = @id";
+
             try
             {
-                using(SqlConnection connection = new SqlConnection(_connectionString))
+                using(var connection = new SqliteConnection(_connectionString))
                 {
                     connection.Open();
-                    SqlCommand cmd = new SqlCommand(query, connection);
 
-                    cmd.Parameters.AddWithValue("@id", id);
-                    int result = cmd.ExecuteNonQuery();
-                    return result > 0;
+                    using(var command = new SqliteCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@id", id);
+
+                        int result = command.ExecuteNonQuery();
+                        return result > 0;
+                    }
                 }
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
                 Console.WriteLine($"Ошибка при удалении: {ex.Message}");
                 return false;
