@@ -1,0 +1,19 @@
+# Папки сборки
+bin/
+obj/
+
+# Файлы Visual Studio
+*.user
+*.suo
+*.cache
+*.log
+
+# Папка NuGet пакетов
+packages/
+
+# Файлы ReSharper
+_ReSharper*/
+*.DotSettings.user
+
+# Файлы macOS
+.DS_Store

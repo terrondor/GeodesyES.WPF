@@ -1,0 +1,50 @@
+﻿<Window x:Class="GeodesyApp.WPF.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:GeodesyApp.WPF"
+        mc:Ignorable="d"
+        Title="Реестр исполнительных схем" Height="600" Width="1000"
+        WindowStartupLocation="CenterScreen">
+    <DockPanel>
+        <!-- Панель кнопок сверху -->
+        <StackPanel DockPanel.Dock="Top" 
+                    Orientation="Horizontal" 
+                    Margin="10">
+            <Button Content="🔄 Загрузить" 
+                    Click="LoadButton_Click"
+                    Padding="15,8" Margin="0,0,10,0"/>
+            <Button Content="➕ Добавить" 
+                    Click="AddButton_Click"
+                    Padding="15,8" Margin="0,0,10,0"/>
+            <Button Content="✏️ Изменить статус" 
+                    Click="StatusButton_Click"
+                    Padding="15,8" Margin="0,0,10,0"/>
+            <Button Content="🗑 Удалить" 
+                    Click="DeleteButton_Click"
+                    Padding="15,8" Margin="0,0,10,0"/>
+            <Button Content="📊 Экспорт в Excel" 
+                    Click="ExportButton_Click"
+                    Padding="15,8"/>
+        </StackPanel>
+
+        <!-- Таблица со схемами -->
+        <DataGrid Name="SchemesDataGrid"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  SelectionMode="Single"
+                  Margin="10"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="50"/>
+                <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="*"/>
+                <DataGridTextColumn Header="Оси" Binding="{Binding Axes}" Width="*"/>
+                <DataGridTextColumn Header="Отметка" Binding="{Binding Mark}" Width="100"/>
+                <DataGridTextColumn Header="Объём, м³" Binding="{Binding Volume}" Width="100"/>
+                <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="150"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</Window>
