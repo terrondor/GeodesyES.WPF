@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Windows;
 
 namespace GeodesyApp
 {
@@ -111,6 +112,52 @@ namespace GeodesyApp
             catch(Exception ex)
             {
                 Console.WriteLine($"Ошибка при обновлении: {ex.Message}");
+                return false;
+            }
+        }
+        // Метод для обновления ВСЕХ полей схемы
+        public bool UpdateScheme(Scheme scheme)
+        {
+            string query = @"UPDATE Register 
+                     SET Название = @name, 
+                         Оси = @axes, 
+                         Отметка = @mark, 
+                         Объем = @volume,
+                         Статус = @status
+                     WHERE id = @id";
+
+            try
+            {
+                using(SqlConnection connection = new SqlConnection(_connectionString))
+                {
+                    connection.Open();
+                    SqlCommand cmd = new SqlCommand(query, connection);
+
+                    cmd.Parameters.AddWithValue("@id", scheme.Id);
+                    cmd.Parameters.AddWithValue("@name", scheme.Name);
+                    cmd.Parameters.AddWithValue("@axes", scheme.Axes);
+                    cmd.Parameters.AddWithValue("@mark", scheme.Mark);
+
+                    // Если объём NULL, передаём DBNull.Value
+                    if(scheme.Volume.HasValue)
+                    {
+                        cmd.Parameters.AddWithValue("@volume", scheme.Volume.Value);
+                    }
+                    else
+                    {
+                        cmd.Parameters.AddWithValue("@volume", DBNull.Value);
+                    }
+
+                    cmd.Parameters.AddWithValue("@status", scheme.Status);
+
+                    int result = cmd.ExecuteNonQuery();
+                    return result > 0;
+                }
+            }
+            catch(Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Ошибка при обновлении: {ex.Message}", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
         }

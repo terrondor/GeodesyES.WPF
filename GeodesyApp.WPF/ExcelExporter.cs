@@ -81,7 +81,6 @@ namespace GeodesyApp
             return workbook;  // возвращаем workbook, но НЕ сохраняем
         }
 
-        // Метод 2: Сохраняет workbook с проверками
         // Метод 2: Сохраняет workbook с обработкой ошибок
         public void SaveWorkbook(XLWorkbook workbook, string filePath)
         {

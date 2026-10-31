@@ -18,15 +18,17 @@
             <Button Content="➕ Добавить" 
                     Click="AddButton_Click"
                     Padding="15,8" Margin="0,0,10,0"/>
-            <Button Content="✏️ Изменить статус" 
-                    Click="StatusButton_Click"
-                    Padding="15,8" Margin="0,0,10,0"/>
+            <Button Content="✏️ Редактировать" 
+                    Click="EditButton_Click"
+                    Padding="15,8"/>
             <Button Content="🗑 Удалить" 
                     Click="DeleteButton_Click"
-                    Padding="15,8" Margin="0,0,10,0"/>
+                    Padding="15,8"
+                    Margin="10,0,0,0"/>
             <Button Content="📊 Экспорт в Excel" 
                     Click="ExportButton_Click"
-                    Padding="15,8"/>
+                    Padding="15,8"
+                    Margin="10,0,0,0"/>
         </StackPanel>
 
         <!-- Таблица со схемами -->

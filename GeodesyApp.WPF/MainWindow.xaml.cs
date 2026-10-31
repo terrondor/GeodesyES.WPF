@@ -40,22 +40,161 @@ namespace GeodesyApp.WPF
         // Кнопка "Добавить"
         private void AddButton_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Добавление схемы — будет реализовано на следующем шаге",
-                "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+            // Создаём окно добавления схемы
+            var addWindow = new AddSchemeWindow();
+
+            // Показываем окно как модальный диалог (блокирует главное окно)
+            bool? result = addWindow.ShowDialog();
+
+            // Если пользователь нажал "Сохранить" (DialogResult = true)
+            if(result == true)
+            {
+                try
+                {
+                    // Создаём объект Scheme из данных формы
+                    var newScheme = new Scheme
+                    {
+                        Name = addWindow.SchemeName,
+                        Axes = addWindow.SchemeAxes,
+                        Mark = addWindow.SchemeMark,
+                        Volume = addWindow.SchemeVolume,
+                        Status = addWindow.SchemeStatus
+                    };
+
+                    // Добавляем в базу данных
+                    bool success = dbHelper.AddScheme(newScheme);
+
+                    if(success)
+                    {
+                        MessageBox.Show("Схема успешно добавлена!", "Успех",
+                            MessageBoxButton.OK, MessageBoxImage.Information);
+
+                        // Обновляем таблицу
+                        LoadButton_Click(sender, e);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Не удалось добавить схему. Проверьте данные.", "Ошибка",
+                            MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+                catch(Exception ex)
+                {
+                    MessageBox.Show($"Ошибка при добавлении: {ex.Message}", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
         }
 
-        // Кнопка "Изменить статус"
-        private void StatusButton_Click(object sender, RoutedEventArgs e)
+        // Кнопка "Редактировать"
+        private void EditButton_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Изменение статуса — будет реализовано на следующем шаге",
-                "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+            // Проверяем, что строка выбрана
+            if(SchemesDataGrid.SelectedItem is Scheme selectedScheme)
+            {
+                // Открываем окно редактирования с текущими данными
+                var editWindow = new EditSchemeWindow(selectedScheme);
+                editWindow.Owner = this;
+
+                bool? result = editWindow.ShowDialog();
+
+                if(result == true)
+                {
+                    try
+                    {
+                        // Создаём обновлённый объект Scheme
+                        var updatedScheme = new Scheme
+                        {
+                            Id = selectedScheme.Id,
+                            Name = editWindow.SchemeName,
+                            Axes = editWindow.SchemeAxes,
+                            Mark = editWindow.SchemeMark,
+                            Volume = editWindow.SchemeVolume,
+                            Status = editWindow.SchemeStatus
+                        };
+
+                        // Обновляем в базе данных
+                        bool success = dbHelper.UpdateScheme(updatedScheme);
+
+                        if(success)
+                        {
+                            MessageBox.Show($"Схема '{updatedScheme.Name}' успешно обновлена!",
+                                "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                            // Обновляем таблицу
+                            LoadButton_Click(sender, e);
+                        }
+                        else
+                        {
+                            MessageBox.Show("Не удалось обновить схему.", "Ошибка",
+                                MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                    }
+                    catch(Exception ex)
+                    {
+                        MessageBox.Show($"Ошибка: {ex.Message}", "Ошибка",
+                            MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            }
+            else
+            {
+                MessageBox.Show("Сначала выберите схему в таблице!", "Внимание",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
 
         // Кнопка "Удалить"
         private void DeleteButton_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Удаление — будет реализовано на следующем шаге",
-                "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+            // Проверяем, что строка выбрана
+            if(SchemesDataGrid.SelectedItem is Scheme selectedScheme)
+            {
+                // Показываем диалог подтверждения с названием схемы
+                var result = MessageBox.Show(
+                    $"Вы действительно хотите удалить схему?\n\n" +
+                    $"ID: {selectedScheme.Id}\n" +
+                    $"Название: {selectedScheme.Name}\n" +
+                    $"Оси: {selectedScheme.Axes}\n" +
+                    $"Отметка: {selectedScheme.Mark}\n\n" +
+                    $"Это действие нельзя отменить!",
+                    "Подтверждение удаления",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+                // Если пользователь нажал "Да"
+                if(result == MessageBoxResult.Yes)
+                {
+                    try
+                    {
+                        bool success = dbHelper.DeleteScheme(selectedScheme.Id);
+
+                        if(success)
+                        {
+                            MessageBox.Show($"Схема '{selectedScheme.Name}' успешно удалена!",
+                                "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                            // Обновляем таблицу
+                            LoadButton_Click(sender, e);
+                        }
+                        else
+                        {
+                            MessageBox.Show("Не удалось удалить схему.", "Ошибка",
+                                MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                    }
+                    catch(Exception ex)
+                    {
+                        MessageBox.Show($"Ошибка при удалении: {ex.Message}", "Ошибка",
+                            MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            }
+            else
+            {
+                MessageBox.Show("Сначала выберите схему в таблице!", "Внимание",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
 
         // Кнопка "Экспорт в Excel"
